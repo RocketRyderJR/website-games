@@ -1,0 +1,372 @@
+
+<style>
+  #gameCanvas { display: block; width: 100%; cursor: pointer; }
+  #ui { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 14px; color: var(--color-text-secondary); }
+  #message { text-align: center; font-size: 15px; font-weight: 500; color: var(--color-text-primary); padding: 6px 0 2px; min-height: 28px; }
+</style>
+
+<h2 class="sr-only">Astronaut asteroid runner game — press space or tap to jump</h2>
+<div id="message">Press Space or tap to start</div>
+<div id="ui"><span>Score: <b id="score">0</b></span><span>Best: <b id="best">0</b></span><span id="speedLabel">Speed: 1×</span></div>
+<canvas id="gameCanvas" width="680" height="200"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const bestEl = document.getElementById('best');
+const msgEl = document.getElementById('message');
+const speedEl = document.getElementById('speedLabel');
+
+const W = 680, H = 200;
+canvas.width = W; canvas.height = H;
+
+const GROUND = H - 30;
+const GRAVITY = 0.55;
+const JUMP = -13;
+
+let state = 'idle';
+let score = 0, best = 0, frame = 0;
+let gameSpeed = 4;
+
+const stars = Array.from({length: 60}, () => ({
+  x: Math.random() * W,
+  y: Math.random() * (GROUND - 40),
+  r: Math.random() * 1.4 + 0.3,
+  twinkle: Math.random() * Math.PI * 2
+}));
+
+const astronaut = {
+  x: 90, y: GROUND, w: 28, h: 36,
+  vy: 0, grounded: true,
+  jumpCount: 0,
+  jump() {
+    if (this.jumpCount < 2) {
+      this.vy = JUMP;
+      this.grounded = false;
+      this.jumpCount++;
+    }
+  }
+};
+
+let asteroids = [];
+let particles = [];
+let nextAsteroid = 80;
+
+function spawnAsteroid() {
+  const h = 20 + Math.random() * 28;
+  const w = h * (0.8 + Math.random() * 0.5);
+  asteroids.push({
+    x: W + 20,
+    y: GROUND - h + 4,
+    w, h,
+    sides: 6 + Math.floor(Math.random() * 4),
+    rotation: Math.random() * Math.PI,
+    rotSpeed: (Math.random() - 0.5) * 0.04
+  });
+}
+
+function drawStars(t) {
+  for (const s of stars) {
+    const twinkle = 0.5 + 0.5 * Math.sin(t * 0.03 + s.twinkle);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r * twinkle, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200, 210, 255, ${0.4 + 0.5 * twinkle})`;
+    ctx.fill();
+  }
+}
+
+function drawAstronaut(ast, t) {
+  const x = ast.x, y = ast.y;
+  const bounce = ast.grounded ? Math.sin(t * 0.18) * 1.5 : 0;
+
+  ctx.save();
+  ctx.translate(x + ast.w / 2, y + ast.h / 2 + bounce);
+
+  // Jetpack flame when jumping
+  if (!ast.grounded && ast.vy < 0) {
+    const flameLen = 8 + Math.random() * 6;
+    ctx.beginPath();
+    ctx.moveTo(-6, ast.h / 2 - 2);
+    ctx.lineTo(0, ast.h / 2 + flameLen);
+    ctx.lineTo(6, ast.h / 2 - 2);
+    ctx.fillStyle = '#FF8C00';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-3, ast.h / 2);
+    ctx.lineTo(0, ast.h / 2 + flameLen * 0.6);
+    ctx.lineTo(3, ast.h / 2);
+    ctx.fillStyle = '#FFD700';
+    ctx.fill();
+  }
+
+  // Legs
+  const legCycle = ast.grounded ? Math.sin(t * 0.25) * 6 : 0;
+  ctx.fillStyle = '#aab8cc';
+  ctx.fillRect(-10, ast.h / 2 - 8, 8, 10);
+  ctx.fillRect(2, ast.h / 2 - 8, 8, 10);
+  // Boots
+  ctx.fillStyle = '#778899';
+  ctx.fillRect(-11, ast.h / 2 + 2, 10, 5);
+  ctx.fillRect(1, ast.h / 2 + 2, 10, 5);
+
+  // Body suit
+  ctx.fillStyle = '#c8d8ee';
+  ctx.beginPath();
+  ctx.roundRect(-11, -ast.h / 2 + 10, 22, 20, 4);
+  ctx.fill();
+  ctx.strokeStyle = '#90a8c0';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Backpack
+  ctx.fillStyle = '#8898aa';
+  ctx.fillRect(8, -ast.h / 2 + 12, 6, 14);
+
+  // Arms
+  const armSwing = ast.grounded ? Math.sin(t * 0.25 + Math.PI) * 5 : -8;
+  ctx.fillStyle = '#aab8cc';
+  ctx.save(); ctx.translate(-11, -ast.h / 2 + 14); ctx.rotate(armSwing * 0.07);
+  ctx.fillRect(-4, 0, 5, 12); ctx.restore();
+  ctx.save(); ctx.translate(10, -ast.h / 2 + 14); ctx.rotate(-armSwing * 0.07);
+  ctx.fillRect(0, 0, 5, 12); ctx.restore();
+
+  // Helmet
+  ctx.beginPath();
+  ctx.arc(0, -ast.h / 2 + 8, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#ddeeff';
+  ctx.fill();
+  ctx.strokeStyle = '#90b8dd';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Visor
+  ctx.beginPath();
+  ctx.ellipse(1, -ast.h / 2 + 8, 7, 6, 0, 0, Math.PI * 2);
+  ctx.fillStyle = '#f0c040';
+  ctx.fill();
+  ctx.strokeStyle = '#d8a020';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Highlight on visor
+  ctx.beginPath();
+  ctx.ellipse(-2, -ast.h / 2 + 5, 3, 2, -0.4, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawAsteroid(a) {
+  ctx.save();
+  ctx.translate(a.x + a.w / 2, a.y + a.h / 2);
+  ctx.rotate(a.rotation);
+
+  const rx = a.w / 2, ry = a.h / 2;
+  ctx.beginPath();
+  for (let i = 0; i < a.sides; i++) {
+    const angle = (i / a.sides) * Math.PI * 2;
+    const jitter = 0.75 + Math.random() * 0.35;
+    const px = Math.cos(angle) * rx * jitter;
+    const py = Math.sin(angle) * ry * jitter;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = '#7a6a5a';
+  ctx.fill();
+  ctx.strokeStyle = '#5a4a3a';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Craters
+  const craters = [{dx: -rx*0.25, dy: -ry*0.15, r: rx*0.18}, {dx: rx*0.2, dy: ry*0.2, r: rx*0.12}];
+  for (const c of craters) {
+    ctx.beginPath();
+    ctx.arc(c.dx, c.dy, c.r, 0, Math.PI * 2);
+    ctx.fillStyle = '#5a4a3a';
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawGround() {
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, GROUND + 4, W, H - GROUND - 4);
+  // Ground line with glow
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND + 4);
+  ctx.lineTo(W, GROUND + 4);
+  ctx.strokeStyle = '#4488cc';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Grid lines on ground
+  ctx.strokeStyle = 'rgba(68,136,204,0.2)';
+  ctx.lineWidth = 1;
+  for (let gx = (frame * gameSpeed * 0.5) % 40; gx < W; gx += 40) {
+    ctx.beginPath();
+    ctx.moveTo(gx, GROUND + 4);
+    ctx.lineTo(gx, H);
+    ctx.stroke();
+  }
+}
+
+function drawParticles() {
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * (p.life / p.maxLife), 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${p.color}, ${p.life / p.maxLife})`;
+    ctx.fill();
+    p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life--;
+  }
+}
+
+function spawnExplosion(x, y) {
+  for (let i = 0; i < 20; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 1 + Math.random() * 4;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      r: 2 + Math.random() * 4,
+      life: 30 + Math.random() * 20,
+      maxLife: 50,
+      color: Math.random() > 0.5 ? '255,160,40' : '200,120,40'
+    });
+  }
+}
+
+function rectOverlap(a, b, margin = 6) {
+  return a.x + margin < b.x + b.w - margin &&
+         a.x + a.w - margin > b.x + margin &&
+         a.y + margin < b.y + b.h - margin &&
+         a.y + a.h - margin > b.y + margin;
+}
+
+function render(t) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Space background
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  ctx.fillStyle = isDark ? '#08091a' : '#0d1021';
+  ctx.fillRect(0, 0, W, H);
+
+  drawStars(t);
+  drawGround();
+  drawParticles();
+
+  for (const a of asteroids) drawAsteroid(a);
+  drawAstronaut(astronaut, t);
+
+  if (state === 'dead') {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '500 22px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Mission Failed!', W / 2, H / 2 - 12);
+    ctx.font = '400 14px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText('Press Space or tap to retry', W / 2, H / 2 + 16);
+    ctx.textAlign = 'left';
+  }
+}
+
+function update() {
+  frame++;
+  score++;
+  scoreEl.textContent = score;
+  gameSpeed = 4 + Math.floor(score / 300) * 0.5;
+  speedEl.textContent = `Speed: ${(gameSpeed / 4).toFixed(1)}×`;
+
+  // Astronaut physics
+  astronaut.vy += GRAVITY;
+  astronaut.y += astronaut.vy;
+  if (astronaut.y >= GROUND - astronaut.h) {
+    astronaut.y = GROUND - astronaut.h;
+    astronaut.vy = 0;
+    astronaut.grounded = true;
+    astronaut.jumpCount = 0;
+  } else {
+    astronaut.grounded = false;
+  }
+
+  // Asteroid spawning
+  nextAsteroid--;
+  if (nextAsteroid <= 0) {
+    spawnAsteroid();
+    nextAsteroid = 55 + Math.floor(Math.random() * 60) - Math.min(score / 100, 25);
+  }
+
+  // Move asteroids
+  for (const a of asteroids) {
+    a.x -= gameSpeed;
+    a.rotation += a.rotSpeed;
+  }
+  asteroids = asteroids.filter(a => a.x + a.w > -20);
+
+  // Collision
+  const astBody = { x: astronaut.x + 4, y: astronaut.y + 4, w: astronaut.w - 8, h: astronaut.h - 4 };
+  for (const a of asteroids) {
+    if (rectOverlap(astBody, a)) {
+      spawnExplosion(astronaut.x + astronaut.w / 2, astronaut.y + astronaut.h / 2);
+      if (score > best) { best = score; bestEl.textContent = best; }
+      state = 'dead';
+      msgEl.textContent = `Score: ${score} — press Space or tap to retry`;
+      return;
+    }
+  }
+}
+
+let animId;
+function loop(t) {
+  if (state === 'running') update();
+  render(t);
+  animId = requestAnimationFrame(loop);
+}
+
+function startGame() {
+  if (state === 'running') {
+    astronaut.jump();
+    return;
+  }
+  if (state === 'idle' || state === 'dead') {
+    state = 'running';
+    score = 0;
+    frame = 0;
+    gameSpeed = 4;
+    asteroids = [];
+    particles = [];
+    nextAsteroid = 80;
+    astronaut.y = GROUND - astronaut.h;
+    astronaut.vy = 0;
+    astronaut.grounded = true;
+    astronaut.jumpCount = 0;
+    msgEl.textContent = 'Space / tap to jump — double jump available!';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (state === 'running') astronaut.jump();
+    else startGame();
+  }
+});
+
+canvas.addEventListener('click', () => {
+  if (state === 'running') astronaut.jump();
+  else startGame();
+});
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (state === 'running') astronaut.jump();
+  else startGame();
+}, { passive: false });
+
+requestAnimationFrame(loop);
+</script>
