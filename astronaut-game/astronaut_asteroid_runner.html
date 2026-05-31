@@ -8,7 +8,7 @@
 <h2 class="sr-only">Astronaut asteroid runner game — press space or tap to jump</h2>
 <div id="message">Press Space or tap to start</div>
 <div id="ui"><span>Score: <b id="score">0</b></span><span>Best: <b id="best">0</b></span><span id="speedLabel">Speed: 1×</span></div>
-<canvas id="gameCanvas" width="680" height="200"></canvas>
+<canvas id="gameCanvas" width="680" height="320"></canvas>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
@@ -18,20 +18,20 @@ const bestEl = document.getElementById('best');
 const msgEl = document.getElementById('message');
 const speedEl = document.getElementById('speedLabel');
 
-const W = 680, H = 200;
+const W = 680, H = 320;
 canvas.width = W; canvas.height = H;
 
-const GROUND = H - 30;
-const GRAVITY = 0.55;
+const GROUND = H - 40;
+const GRAVITY = 0.45;
 const JUMP = -13;
 
 let state = 'idle';
 let score = 0, best = 0, frame = 0;
 let gameSpeed = 4;
 
-const stars = Array.from({length: 60}, () => ({
+const stars = Array.from({length: 80}, () => ({
   x: Math.random() * W,
-  y: Math.random() * (GROUND - 40),
+  y: Math.random() * (GROUND - 60),
   r: Math.random() * 1.4 + 0.3,
   twinkle: Math.random() * Math.PI * 2
 }));
@@ -62,7 +62,7 @@ function spawnAsteroid() {
     w, h,
     sides: 6 + Math.floor(Math.random() * 4),
     rotation: Math.random() * Math.PI,
-    rotSpeed: (Math.random() - 0.5) * 0.04
+    rotSpeed: (Math.random() - 0.5) * 0.012
   });
 }
 
@@ -78,12 +78,11 @@ function drawStars(t) {
 
 function drawAstronaut(ast, t) {
   const x = ast.x, y = ast.y;
-  const bounce = ast.grounded ? Math.sin(t * 0.18) * 1.5 : 0;
+  const bounce = ast.grounded ? Math.sin(t * 0.06) * 1.5 : 0;
 
   ctx.save();
   ctx.translate(x + ast.w / 2, y + ast.h / 2 + bounce);
 
-  // Jetpack flame when jumping
   if (!ast.grounded && ast.vy < 0) {
     const flameLen = 8 + Math.random() * 6;
     ctx.beginPath();
@@ -100,12 +99,11 @@ function drawAstronaut(ast, t) {
     ctx.fill();
   }
 
-  // Legs
-  const legCycle = ast.grounded ? Math.sin(t * 0.25) * 6 : 0;
+  // Legs — slowed arm/leg cycle
+  const legCycle = ast.grounded ? Math.sin(t * 0.08) * 6 : 0;
   ctx.fillStyle = '#aab8cc';
   ctx.fillRect(-10, ast.h / 2 - 8, 8, 10);
   ctx.fillRect(2, ast.h / 2 - 8, 8, 10);
-  // Boots
   ctx.fillStyle = '#778899';
   ctx.fillRect(-11, ast.h / 2 + 2, 10, 5);
   ctx.fillRect(1, ast.h / 2 + 2, 10, 5);
@@ -123,12 +121,12 @@ function drawAstronaut(ast, t) {
   ctx.fillStyle = '#8898aa';
   ctx.fillRect(8, -ast.h / 2 + 12, 6, 14);
 
-  // Arms
-  const armSwing = ast.grounded ? Math.sin(t * 0.25 + Math.PI) * 5 : -8;
+  // Arms — slowed swing
+  const armSwing = ast.grounded ? Math.sin(t * 0.08 + Math.PI) * 12 : -20;
   ctx.fillStyle = '#aab8cc';
-  ctx.save(); ctx.translate(-11, -ast.h / 2 + 14); ctx.rotate(armSwing * 0.07);
+  ctx.save(); ctx.translate(-11, -ast.h / 2 + 14); ctx.rotate(armSwing * 0.04);
   ctx.fillRect(-4, 0, 5, 12); ctx.restore();
-  ctx.save(); ctx.translate(10, -ast.h / 2 + 14); ctx.rotate(-armSwing * 0.07);
+  ctx.save(); ctx.translate(10, -ast.h / 2 + 14); ctx.rotate(-armSwing * 0.04);
   ctx.fillRect(0, 0, 5, 12); ctx.restore();
 
   // Helmet
@@ -149,7 +147,6 @@ function drawAstronaut(ast, t) {
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Highlight on visor
   ctx.beginPath();
   ctx.ellipse(-2, -ast.h / 2 + 5, 3, 2, -0.4, 0, Math.PI * 2);
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
@@ -167,7 +164,7 @@ function drawAsteroid(a) {
   ctx.beginPath();
   for (let i = 0; i < a.sides; i++) {
     const angle = (i / a.sides) * Math.PI * 2;
-    const jitter = 0.75 + Math.random() * 0.35;
+    const jitter = 0.78 + Math.random() * 0.28;
     const px = Math.cos(angle) * rx * jitter;
     const py = Math.sin(angle) * ry * jitter;
     i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
@@ -179,7 +176,6 @@ function drawAsteroid(a) {
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // Craters
   const craters = [{dx: -rx*0.25, dy: -ry*0.15, r: rx*0.18}, {dx: rx*0.2, dy: ry*0.2, r: rx*0.12}];
   for (const c of craters) {
     ctx.beginPath();
@@ -194,7 +190,6 @@ function drawAsteroid(a) {
 function drawGround() {
   ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, GROUND + 4, W, H - GROUND - 4);
-  // Ground line with glow
   ctx.beginPath();
   ctx.moveTo(0, GROUND + 4);
   ctx.lineTo(W, GROUND + 4);
@@ -202,7 +197,6 @@ function drawGround() {
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Grid lines on ground
   ctx.strokeStyle = 'rgba(68,136,204,0.2)';
   ctx.lineWidth = 1;
   for (let gx = (frame * gameSpeed * 0.5) % 40; gx < W; gx += 40) {
@@ -249,10 +243,7 @@ function rectOverlap(a, b, margin = 6) {
 
 function render(t) {
   ctx.clearRect(0, 0, W, H);
-
-  // Space background
-  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  ctx.fillStyle = isDark ? '#08091a' : '#0d1021';
+  ctx.fillStyle = '#0d1021';
   ctx.fillRect(0, 0, W, H);
 
   drawStars(t);
@@ -283,7 +274,6 @@ function update() {
   gameSpeed = 4 + Math.floor(score / 300) * 0.5;
   speedEl.textContent = `Speed: ${(gameSpeed / 4).toFixed(1)}×`;
 
-  // Astronaut physics
   astronaut.vy += GRAVITY;
   astronaut.y += astronaut.vy;
   if (astronaut.y >= GROUND - astronaut.h) {
@@ -295,21 +285,18 @@ function update() {
     astronaut.grounded = false;
   }
 
-  // Asteroid spawning
   nextAsteroid--;
   if (nextAsteroid <= 0) {
     spawnAsteroid();
     nextAsteroid = 55 + Math.floor(Math.random() * 60) - Math.min(score / 100, 25);
   }
 
-  // Move asteroids
   for (const a of asteroids) {
     a.x -= gameSpeed;
     a.rotation += a.rotSpeed;
   }
   asteroids = asteroids.filter(a => a.x + a.w > -20);
 
-  // Collision
   const astBody = { x: astronaut.x + 4, y: astronaut.y + 4, w: astronaut.w - 8, h: astronaut.h - 4 };
   for (const a of asteroids) {
     if (rectOverlap(astBody, a)) {
@@ -330,17 +317,11 @@ function loop(t) {
 }
 
 function startGame() {
-  if (state === 'running') {
-    astronaut.jump();
-    return;
-  }
+  if (state === 'running') { astronaut.jump(); return; }
   if (state === 'idle' || state === 'dead') {
     state = 'running';
-    score = 0;
-    frame = 0;
-    gameSpeed = 4;
-    asteroids = [];
-    particles = [];
+    score = 0; frame = 0; gameSpeed = 4;
+    asteroids = []; particles = [];
     nextAsteroid = 80;
     astronaut.y = GROUND - astronaut.h;
     astronaut.vy = 0;
@@ -357,16 +338,8 @@ document.addEventListener('keydown', e => {
     else startGame();
   }
 });
-
-canvas.addEventListener('click', () => {
-  if (state === 'running') astronaut.jump();
-  else startGame();
-});
-canvas.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if (state === 'running') astronaut.jump();
-  else startGame();
-}, { passive: false });
+canvas.addEventListener('click', () => { if (state === 'running') astronaut.jump(); else startGame(); });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); if (state === 'running') astronaut.jump(); else startGame(); }, { passive: false });
 
 requestAnimationFrame(loop);
 </script>
