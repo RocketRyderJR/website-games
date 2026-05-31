@@ -1,0 +1,438 @@
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#f5efe0;--ink:#1a1208;--ink-light:#4a3f2f;
+  --spine:#8b4513;--spine-dark:#5c2d0a;--gold:#c9922a;--gold-light:#e8b84b;
+  --cover-a:#8b4513;--cover-b:#5c2d0a;
+}
+body{
+  background:#2c1810;
+  background-image:radial-gradient(ellipse at 30% 20%,#3d2015 0%,#1a0d08 100%);
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  padding:20px 10px 40px;font-family:'Crimson Text',Georgia,serif;
+}
+.app-title{font-family:'Playfair Display',serif;color:var(--gold-light);font-size:22px;font-weight:400;letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;text-shadow:0 2px 8px rgba(0,0,0,0.6);}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;padding:10px 16px;background:rgba(0,0,0,0.3);border-radius:6px;border:1px solid rgba(201,146,42,0.2);width:100%;max-width:900px;}
+.toolbar button,.toolbar select{background:rgba(201,146,42,0.15);border:1px solid rgba(201,146,42,0.35);color:var(--gold-light);font-family:'Crimson Text',serif;font-size:14px;padding:4px 10px;border-radius:3px;cursor:pointer;transition:background 0.15s;}
+.toolbar button:hover{background:rgba(201,146,42,0.3);}
+.sep{width:1px;background:rgba(201,146,42,0.2);margin:0 2px;}
+.save-btn{background:rgba(42,120,80,0.25)!important;border-color:rgba(80,180,120,0.45)!important;color:#90e8b8!important;}
+.save-btn:hover{background:rgba(42,120,80,0.4)!important;}
+.add-page-btn{background:rgba(80,100,200,0.22)!important;border-color:rgba(120,140,255,0.4)!important;color:#b0beff!important;}
+.add-page-btn:hover{background:rgba(80,100,200,0.38)!important;}
+.save-indicator{font-family:'Crimson Text',serif;font-size:12px;letter-spacing:1px;color:rgba(144,232,184,0.8);display:flex;align-items:center;opacity:0;transition:opacity 0.4s;}
+.save-indicator.show{opacity:1;}
+
+/* COLOR PICKER ROW */
+.color-row{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  margin-bottom:16px;padding:8px 16px;
+  background:rgba(0,0,0,0.25);border-radius:6px;border:1px solid rgba(201,146,42,0.15);
+  width:100%;max-width:900px;
+}
+.color-row-label{font-family:'Playfair Display',serif;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:rgba(232,184,75,0.6);}
+.color-swatch{
+  width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);
+  cursor:pointer;transition:transform 0.15s,border-color 0.15s;flex-shrink:0;
+}
+.color-swatch:hover{transform:scale(1.15);border-color:rgba(255,255,255,0.5);}
+.color-swatch.selected{border-color:#fff;transform:scale(1.18);box-shadow:0 0 0 2px rgba(201,146,42,0.6);}
+.color-swatch-custom{
+  width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,0.2);
+  cursor:pointer;overflow:hidden;position:relative;flex-shrink:0;
+}
+.color-swatch-custom input[type=color]{
+  position:absolute;inset:-4px;width:calc(100%+8px);height:calc(100%+8px);
+  border:none;background:none;cursor:pointer;opacity:0;
+}
+.color-swatch-custom-bg{position:absolute;inset:0;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);pointer-events:none;}
+
+.book-wrap{perspective:2200px;display:flex;justify-content:center;width:100%;}
+.book{display:flex;filter:drop-shadow(0 20px 60px rgba(0,0,0,0.75));transform:rotateY(-4deg);transform-style:preserve-3d;transition:transform 0.4s;}
+.book:hover{transform:rotateY(-2deg);}
+
+.spine{width:38px;min-height:560px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;border-radius:3px 0 0 3px;transition:background 0.4s;}
+.spine-title{writing-mode:vertical-rl;transform:rotate(180deg);font-family:'Playfair Display',serif;font-style:italic;color:var(--gold-light);font-size:13px;letter-spacing:2px;text-shadow:0 1px 3px rgba(0,0,0,0.5);max-height:280px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;padding:0 4px;}
+.spine-line{position:absolute;width:26px;height:1px;background:rgba(201,146,42,0.4);}
+.spine-line.top{top:20px;}.spine-line.bot{bottom:20px;}
+.pages-stack{width:10px;min-height:560px;background:repeating-linear-gradient(to right,#f0e6cc 0px,#f0e6cc 1px,#e8dab8 2px,#f0e6cc 3px);box-shadow:inset -2px 0 4px rgba(0,0,0,0.15);}
+.book-right{display:flex;flex-direction:column;width:740px;}
+
+.front-cover{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  min-height:560px;border:1px solid rgba(0,0,0,0.3);border-left:none;border-radius:0 4px 4px 0;
+  position:relative;cursor:pointer;overflow:hidden;padding:40px;transition:background 0.4s;
+}
+.front-cover::before{content:'';position:absolute;inset:12px;border:1px solid rgba(201,146,42,0.3);border-radius:2px;pointer-events:none;}
+.front-cover::after{content:'';position:absolute;inset:16px;border:1px solid rgba(201,146,42,0.15);border-radius:2px;pointer-events:none;}
+.cover-ornament{font-size:42px;color:var(--gold);opacity:0.7;margin-bottom:18px;}
+.cover-title-display{font-family:'Playfair Display',serif;font-style:italic;font-size:30px;color:var(--gold-light);text-align:center;text-shadow:0 2px 8px rgba(0,0,0,0.5);margin-bottom:10px;}
+.cover-author-display{font-family:'Crimson Text',serif;font-size:16px;color:rgba(232,184,75,0.7);letter-spacing:2px;}
+.cover-open-hint{position:absolute;bottom:20px;font-size:12px;letter-spacing:2px;color:rgba(201,146,42,0.5);text-transform:uppercase;}
+
+.open-book{display:flex;min-height:560px;}
+
+.page-left{width:370px;flex-shrink:0;background:var(--paper);padding:48px 36px 36px;display:flex;flex-direction:column;align-items:center;border-right:2px solid rgba(139,69,19,0.12);position:relative;box-shadow:inset -8px 0 16px rgba(0,0,0,0.06);overflow:hidden;}
+.page-left::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,transparent 80%,rgba(0,0,0,0.05) 100%);pointer-events:none;}
+.title-page{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;width:100%;}
+.title-page-ornament{font-size:32px;color:var(--gold);opacity:0.6;margin-bottom:18px;}
+.book-title-input{font-family:'Playfair Display',serif;font-style:italic;font-size:24px;color:var(--ink);border:none;background:transparent;text-align:center;width:100%;outline:none;border-bottom:1px solid transparent;padding:4px 0;transition:border-color 0.2s;line-height:1.3;}
+.book-title-input:focus{border-bottom-color:rgba(139,69,19,0.3);}
+.book-title-input::placeholder{color:rgba(74,63,47,0.3);font-style:italic;}
+.divider-ornament{font-size:16px;color:var(--gold);opacity:0.5;margin:14px 0;letter-spacing:6px;}
+.book-author-input{font-family:'Crimson Text',serif;font-size:14px;color:var(--ink-light);border:none;background:transparent;text-align:center;width:100%;outline:none;letter-spacing:2px;border-bottom:1px solid transparent;padding:2px 0;transition:border-color 0.2s;}
+.book-author-input:focus{border-bottom-color:rgba(139,69,19,0.3);}
+.book-author-input::placeholder{color:rgba(74,63,47,0.3);}
+.toc-section{margin-top:auto;width:100%;text-align:center;}
+.toc-title{font-family:'Playfair Display',serif;font-size:11px;letter-spacing:3px;color:var(--ink-light);opacity:0.5;text-transform:uppercase;margin-bottom:8px;}
+.toc-list{font-family:'Crimson Text',serif;font-size:13px;color:var(--ink-light);opacity:0.65;line-height:1.9;text-align:left;}
+.toc-row{display:flex;justify-content:space-between;gap:8px;cursor:pointer;padding:1px 0;align-items:flex-end;}
+.toc-row:hover{opacity:1;color:var(--ink);}
+.toc-dots{flex:1;border-bottom:1px dotted rgba(74,63,47,0.3);margin-bottom:3px;}
+.left-chapter-text{width:100%;flex:1;overflow:hidden;}
+.left-chapter-heading{font-family:'Playfair Display',serif;font-size:13px;letter-spacing:2px;color:var(--ink-light);opacity:0.55;text-transform:uppercase;text-align:center;margin-bottom:16px;}
+.left-page-text{font-family:'IM Fell English',Georgia,serif;font-size:15px;line-height:32px;color:var(--ink);width:100%;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent 31px,rgba(139,69,19,0.08) 31px,rgba(139,69,19,0.08) 32px);background-position:0 8px;padding:8px 0 0;white-space:pre-wrap;word-wrap:break-word;overflow:hidden;max-height:400px;}
+.blank-page-lines{width:100%;flex:1;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent 31px,rgba(139,69,19,0.08) 31px,rgba(139,69,19,0.08) 32px);background-position:0 8px;opacity:0.3;}
+.page-num{font-family:'Crimson Text',serif;font-size:12px;color:var(--ink-light);opacity:0.4;margin-top:auto;padding-top:10px;width:100%;}
+.page-num.left{text-align:left;}.page-num.right{text-align:right;}
+
+.page-right{width:370px;flex-shrink:0;background:var(--paper);padding:40px 36px 36px;display:flex;flex-direction:column;border-radius:0 4px 4px 0;box-shadow:inset 4px 0 8px rgba(0,0,0,0.04);}
+.chapter-number-display{font-family:'Playfair Display',serif;font-size:11px;letter-spacing:4px;color:var(--ink-light);opacity:0.45;text-transform:uppercase;text-align:center;margin-bottom:6px;}
+.chapter-title-input{font-family:'Playfair Display',serif;font-size:20px;color:var(--ink);border:none;background:transparent;outline:none;width:100%;text-align:center;border-bottom:1px solid transparent;padding:2px 0;transition:border-color 0.2s;}
+.chapter-title-input:focus{border-bottom-color:rgba(139,69,19,0.3);}
+.chapter-title-input::placeholder{color:rgba(74,63,47,0.28);font-style:italic;}
+.chapter-rule{border:none;border-top:1px solid rgba(139,69,19,0.15);margin:14px 0 18px;}
+.writing-area-wrap{flex:1;position:relative;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent 31px,rgba(139,69,19,0.08) 31px,rgba(139,69,19,0.08) 32px);background-position:0 8px;}
+.book-textarea{width:100%;height:100%;min-height:360px;border:none;background:transparent;outline:none;resize:none;font-family:'IM Fell English',Georgia,serif;font-size:15px;line-height:32px;color:var(--ink);padding:8px 0 0;caret-color:var(--spine);}
+.book-textarea::placeholder{color:rgba(74,63,47,0.25);font-style:italic;}
+.book-textarea::selection{background:rgba(201,146,42,0.2);}
+.blank-right-lines{width:100%;flex:1;background-image:repeating-linear-gradient(to bottom,transparent 0px,transparent 31px,rgba(139,69,19,0.1) 31px,rgba(139,69,19,0.1) 32px);background-position:0 8px;}
+.add-page-here-btn{font-family:'Playfair Display',serif;font-size:14px;letter-spacing:2px;color:rgba(74,63,47,0.4);border:1px dashed rgba(139,69,19,0.25);background:transparent;padding:10px 24px;border-radius:3px;cursor:pointer;transition:all 0.2s;text-transform:uppercase;margin:12px auto;}
+.add-page-here-btn:hover{color:var(--ink-light);border-color:rgba(139,69,19,0.5);background:rgba(139,69,19,0.05);}
+.page-type-badge{font-family:'Crimson Text',serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(74,63,47,0.35);text-align:center;margin-bottom:10px;}
+
+.page-turn-bar{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:14px;}
+.page-turn-btn{background:rgba(201,146,42,0.1);border:1px solid rgba(201,146,42,0.25);color:var(--gold-light);font-size:16px;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s,transform 0.1s;}
+.page-turn-btn:hover{background:rgba(201,146,42,0.28);transform:scale(1.08);}
+.page-turn-btn:disabled{opacity:0.25;cursor:default;transform:none;}
+.spread-label{font-family:'Crimson Text',serif;font-size:13px;color:rgba(201,146,42,0.55);letter-spacing:1px;min-width:120px;text-align:center;}
+.word-count{text-align:center;font-family:'Crimson Text',serif;font-size:12px;color:rgba(201,146,42,0.45);margin-top:6px;letter-spacing:1px;}
+</style>
+
+<div class="app-title">✦ The Scriptorium ✦</div>
+
+<div class="toolbar">
+  <button onclick="execCmd('bold')"><b>B</b></button>
+  <button onclick="execCmd('italic')"><i>I</i></button>
+  <button onclick="execCmd('underline')"><u>U</u></button>
+  <div class="sep"></div>
+  <select onchange="execCmd('fontSize',this.value);this.selectedIndex=0">
+    <option value="">Size</option>
+    <option value="2">Small</option>
+    <option value="3">Normal</option>
+    <option value="4">Large</option>
+    <option value="5">Larger</option>
+  </select>
+  <div class="sep"></div>
+  <button onclick="addChapter()">+ Chapter</button>
+  <button onclick="removeChapter()">− Chapter</button>
+  <button class="add-page-btn" onclick="addBlankPage()">📄 Add Page</button>
+  <div class="sep"></div>
+  <button class="save-btn" onclick="saveBook()">💾 Save</button>
+  <div class="save-indicator" id="saveIndicator">✓ Saved</div>
+  <div class="sep"></div>
+  <button onclick="downloadBook()">⬇ Download</button>
+  <button onclick="toggleCover()" id="coverToggleBtn">📖 View Cover</button>
+</div>
+
+<!-- COVER COLOR ROW -->
+<div class="color-row">
+  <span class="color-row-label">🎨 Cover Color</span>
+  <div class="color-swatch selected" style="background:linear-gradient(135deg,#8b4513,#5c2d0a)" title="Classic Brown" onclick="setCover('#8b4513','#5c2d0a',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#1a3a5c,#0d1f33)" title="Midnight Navy" onclick="setCover('#1a3a5c','#0d1f33',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#2d5a2d,#162e16)" title="Forest Green" onclick="setCover('#2d5a2d','#162e16',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#6b1a1a,#3a0d0d)" title="Deep Red" onclick="setCover('#6b1a1a','#3a0d0d',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#4a2060,#250f33)" title="Royal Purple" onclick="setCover('#4a2060','#250f33',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#1a4a4a,#0d2626)" title="Dark Teal" onclick="setCover('#1a4a4a','#0d2626',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#555544,#2a2a1e)" title="Slate" onclick="setCover('#555544','#2a2a1e',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#7a5c1a,#3d2d0a)" title="Gold" onclick="setCover('#7a5c1a','#3d2d0a',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#222222,#111111)" title="Onyx Black" onclick="setCover('#222222','#111111',this)"></div>
+  <div class="color-swatch" style="background:linear-gradient(135deg,#c0b090,#8a7a5a)" title="Aged Parchment" onclick="setCover('#c0b090','#8a7a5a',this)"></div>
+  <!-- Custom color -->
+  <div class="color-swatch-custom" title="Custom color" id="customSwatchWrap">
+    <div class="color-swatch-custom-bg"></div>
+    <input type="color" id="customColorPicker" value="#8b4513" oninput="onCustomColor(this.value)">
+  </div>
+  <span style="font-family:'Crimson Text',serif;font-size:12px;color:rgba(232,184,75,0.45);letter-spacing:1px;">Custom ↑</span>
+</div>
+
+<div class="book-wrap">
+<div class="book">
+  <div class="spine" id="bookSpine">
+    <div class="spine-line top"></div>
+    <div class="spine-title" id="spineTitle">My Book</div>
+    <div class="spine-line bot"></div>
+  </div>
+  <div class="pages-stack"></div>
+  <div class="book-right">
+    <div class="front-cover" id="frontCover" onclick="toggleCover()">
+      <div class="cover-ornament">❧</div>
+      <div class="cover-title-display" id="coverTitleDisplay">My Book</div>
+      <div class="cover-author-display" id="coverAuthorDisplay">by the Author</div>
+      <div class="cover-open-hint">click to open</div>
+    </div>
+    <div class="open-book" id="openBook">
+      <div class="page-left" id="pageLeft"></div>
+      <div class="page-right" id="pageRight"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="page-turn-bar">
+  <button class="page-turn-btn" id="btnPrev" onclick="prevSpread()">◀</button>
+  <span class="spread-label" id="spreadLabel">Page i – 2</span>
+  <button class="page-turn-btn" id="btnNext" onclick="nextSpread()">▶</button>
+</div>
+<div class="word-count" id="wordCount">0 words</div>
+
+<script>
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
+let pages=[{type:'chapter',title:'',text:''}];
+let cur=0;
+let coverVisible=false;
+let saveTimer=null;
+let coverColorA='#8b4513';
+let coverColorB='#5c2d0a';
+
+function execCmd(cmd,val){focusTextarea();document.execCommand(cmd,false,val||null);}
+function focusTextarea(){const t=document.getElementById('mainTextarea');if(t)t.focus();}
+
+/* ── COVER COLOR ── */
+function setCover(a,b,swatchEl){
+  coverColorA=a; coverColorB=b;
+  applyColor();
+  // update selected state
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  if(swatchEl) swatchEl.classList.add('selected');
+  autoSave();
+}
+
+function onCustomColor(hex){
+  // darken by mixing with black for the gradient second stop
+  const dark=darken(hex,0.45);
+  coverColorA=hex; coverColorB=dark;
+  applyColor();
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  autoSave();
+}
+
+function darken(hex,amount){
+  let r=parseInt(hex.slice(1,3),16);
+  let g=parseInt(hex.slice(3,5),16);
+  let b=parseInt(hex.slice(5,7),16);
+  r=Math.round(r*(1-amount));g=Math.round(g*(1-amount));b=Math.round(b*(1-amount));
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+function applyColor(){
+  const cover=document.getElementById('frontCover');
+  const spine=document.getElementById('bookSpine');
+  cover.style.background=`linear-gradient(160deg, ${coverColorA} 0%, ${coverColorB} 100%)`;
+  spine.style.background=`linear-gradient(to right, ${coverColorB} 0%, ${coverColorA} 40%, ${lighten(coverColorA,0.15)} 60%, ${coverColorA} 80%, ${coverColorB} 100%)`;
+  spine.style.boxShadow=`inset -3px 0 8px rgba(0,0,0,0.3),inset 3px 0 6px rgba(255,255,255,0.08)`;
+}
+
+function lighten(hex,amount){
+  let r=parseInt(hex.slice(1,3),16);
+  let g=parseInt(hex.slice(3,5),16);
+  let b=parseInt(hex.slice(5,7),16);
+  r=Math.min(255,Math.round(r+(255-r)*amount));
+  g=Math.min(255,Math.round(g+(255-g)*amount));
+  b=Math.min(255,Math.round(b+(255-b)*amount));
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+/* ── SPREAD LOGIC ── */
+function leftNum(){return cur===0?'i':(cur*2+1);}
+function rightNum(){return cur*2+2;}
+function chapterIndex(i){let c=0;for(let x=0;x<i;x++)if(pages[x].type==='chapter')c++;return c;}
+
+function renderLeft(){
+  const el=document.getElementById('pageLeft');
+  if(cur===0){
+    const tv=window._title||'';const av=window._author||'';
+    el.innerHTML=`
+      <div class="title-page">
+        <div class="title-page-ornament">✦</div>
+        <input class="book-title-input" id="bookTitle" placeholder="Enter your title…" maxlength="80" value="${esc(tv)}" oninput="syncMeta()">
+        <div class="divider-ornament">· · ·</div>
+        <input class="book-author-input" id="bookAuthor" placeholder="by Author Name" maxlength="60" value="${esc(av)}" oninput="syncMeta()">
+      </div>
+      <div class="toc-section">
+        <div class="toc-title">Contents</div>
+        <div class="toc-list" id="tocList"></div>
+      </div>
+      <div class="page-num left">i</div>`;
+    renderTOC();
+  } else {
+    const prev=pages[cur-1];
+    if(prev.type==='blank'){
+      el.innerHTML=`<div class="blank-page-lines" style="flex:1;width:100%;"></div><div class="page-num left">${leftNum()}</div>`;
+    } else {
+      const preview=(prev.text||'').slice(0,500);
+      el.innerHTML=`
+        <div class="left-chapter-text">
+          <div class="left-chapter-heading">${prev.title?esc(prev.title):'Chapter '+ROMAN[chapterIndex(cur-1)]}</div>
+          <div class="left-page-text">${esc(preview)}${(prev.text||'').length>500?'…':''}</div>
+        </div>
+        <div class="page-num left">${leftNum()}</div>`;
+    }
+  }
+}
+
+function renderRight(){
+  const el=document.getElementById('pageRight');
+  const p=pages[cur];
+  if(p.type==='blank'){
+    el.innerHTML=`
+      <div class="page-type-badge">Blank Page</div>
+      <div class="blank-right-lines"></div>
+      <button class="add-page-here-btn" onclick="convertToChapter()">+ Turn into chapter</button>
+      <div class="page-num right">${rightNum()}</div>`;
+  } else {
+    const ci=chapterIndex(cur);
+    el.innerHTML=`
+      <div class="chapter-header" style="margin-bottom:14px;">
+        <div class="chapter-number-display">Chapter ${ROMAN[ci]}</div>
+        <input class="chapter-title-input" id="chapterTitleInput" placeholder="Chapter title…" maxlength="60" value="${esc(p.title||'')}" oninput="onTitleInput()">
+      </div>
+      <hr class="chapter-rule">
+      <div class="writing-area-wrap">
+        <textarea class="book-textarea" id="mainTextarea" placeholder="Begin your story here…" oninput="onTextInput()">${esc(p.text||'')}</textarea>
+      </div>
+      <div class="page-num right">${rightNum()}</div>`;
+  }
+  updateNav();updateWordCount();
+}
+
+function renderSpread(){renderLeft();renderRight();}
+
+function renderTOC(){
+  const toc=document.getElementById('tocList');if(!toc)return;
+  let ci=0;
+  toc.innerHTML=pages.map((p,i)=>{
+    if(p.type==='blank')return'';
+    const label=p.title||('Chapter '+ROMAN[ci]);
+    const pnum=i*2+2;ci++;
+    return `<div class="toc-row" onclick="goTo(${i})"><span>${esc(label)}</span><span class="toc-dots"></span><span>${pnum}</span></div>`;
+  }).join('');
+}
+
+function syncMeta(){
+  window._title=(document.getElementById('bookTitle')||{}).value||'';
+  window._author=(document.getElementById('bookAuthor')||{}).value||'';
+  const t=window._title||'My Book';const a=window._author||'by the Author';
+  document.getElementById('spineTitle').textContent=t;
+  document.getElementById('coverTitleDisplay').textContent=t;
+  document.getElementById('coverAuthorDisplay').textContent=a.startsWith('by ')?a:'by '+a;
+  autoSave();
+}
+
+function updateNav(){
+  document.getElementById('btnPrev').disabled=cur===0;
+  document.getElementById('btnNext').disabled=cur===pages.length-1;
+  document.getElementById('spreadLabel').textContent=`Page ${leftNum()} – ${rightNum()}`;
+}
+
+function updateWordCount(){
+  const all=pages.map(p=>p.text||'').join(' ');
+  const w=all.trim()?all.trim().split(/\s+/).length:0;
+  document.getElementById('wordCount').textContent=w.toLocaleString()+(w===1?' word':' words')+' total';
+}
+
+function onTitleInput(){pages[cur].title=(document.getElementById('chapterTitleInput')||{}).value||'';autoSave();}
+function onTextInput(){pages[cur].text=(document.getElementById('mainTextarea')||{}).value||'';updateWordCount();autoSave();}
+
+function saveCurrent(){
+  if(pages[cur].type==='chapter'){
+    const ti=document.getElementById('chapterTitleInput');const ta=document.getElementById('mainTextarea');
+    if(ti)pages[cur].title=ti.value;if(ta)pages[cur].text=ta.value;
+  }
+}
+
+function goTo(i){saveCurrent();cur=Math.max(0,Math.min(i,pages.length-1));renderSpread();focusTextarea();}
+function nextSpread(){if(cur<pages.length-1)goTo(cur+1);}
+function prevSpread(){if(cur>0)goTo(cur-1);}
+function addChapter(){saveCurrent();pages.splice(cur+1,0,{type:'chapter',title:'',text:''});goTo(cur+1);}
+function addBlankPage(){saveCurrent();pages.splice(cur+1,0,{type:'blank',title:'',text:''});goTo(cur+1);}
+function convertToChapter(){pages[cur].type='chapter';renderSpread();focusTextarea();}
+function removeChapter(){
+  if(pages.length===1){alert('Your book needs at least one page.');return;}
+  saveCurrent();pages.splice(cur,1);goTo(Math.max(0,cur-1));
+}
+
+function toggleCover(){
+  coverVisible=!coverVisible;
+  document.getElementById('frontCover').style.display=coverVisible?'flex':'none';
+  document.getElementById('openBook').style.display=coverVisible?'none':'flex';
+  document.getElementById('coverToggleBtn').textContent=coverVisible?'✏️ Write':'📖 View Cover';
+}
+
+function buildSave(){
+  saveCurrent();
+  return{title:window._title||'',author:window._author||'',pages,cur,coverColorA,coverColorB};
+}
+function saveBook(){
+  try{localStorage.setItem('scriptorium_v3',JSON.stringify(buildSave()));flashSaved('✓ Saved');}
+  catch(e){flashSaved('⚠ Could not save');}
+}
+function autoSave(){
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(()=>{try{localStorage.setItem('scriptorium_v3',JSON.stringify(buildSave()));}catch(e){}},1500);
+}
+function loadBook(){
+  try{
+    const raw=localStorage.getItem('scriptorium_v3');if(!raw)return false;
+    const d=JSON.parse(raw);
+    window._title=d.title||'';window._author=d.author||'';
+    pages=(d.pages&&d.pages.length)?d.pages:[{type:'chapter',title:'',text:''}];
+    cur=Math.min(d.cur||0,pages.length-1);
+    if(d.coverColorA){coverColorA=d.coverColorA;coverColorB=d.coverColorB||darken(coverColorA,0.45);}
+    return true;
+  }catch(e){return false;}
+}
+function flashSaved(msg){
+  const el=document.getElementById('saveIndicator');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2200);
+}
+
+function downloadBook(){
+  saveCurrent();
+  const title=window._title||'My Book';const author=window._author||'Unknown Author';
+  let out=title.toUpperCase()+'\n'+author+'\n\n'+'═'.repeat(40)+'\n\n';
+  let ci=0;
+  pages.forEach((p,i)=>{
+    if(p.type==='blank'){out+=`[Blank Page ${i*2+2}]\n\n`;}
+    else{out+='CHAPTER '+ROMAN[ci]+(p.title?': '+p.title.toUpperCase():'')+'\n\n'+(p.text||'(empty)')+'\n\n'+'─'.repeat(40)+'\n\n';ci++;}
+  });
+  const blob=new Blob([out],{type:'text/plain'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=((window._title||'MyBook').replace(/[^a-z0-9]/gi,'_'))+'.txt';a.click();
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// INIT
+const restored=loadBook();
+applyColor();
+renderSpread();
+const bt=document.getElementById('bookTitle');const ba=document.getElementById('bookAuthor');
+if(bt)bt.value=window._title||'';if(ba)ba.value=window._author||'';
+syncMeta();
+if(restored)flashSaved('✓ Book restored');
+focusTextarea();
+</script>

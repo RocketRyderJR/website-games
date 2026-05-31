@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Watchlist & Reading List</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f9f7f4;
+    --surface: #ffffff;
+    --text: #1a1a1a;
+    --text2: #6b6b6b;
+    --text3: #aaaaaa;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.2);
+    --accent: #1a1a1a;
+    --accent-fg: #ffffff;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem; }
+  .app { max-width: 640px; margin: 0 auto; }
+
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.5rem; }
+  .header-icon { font-size: 36px; }
+  .header h1 { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; }
+  .header p { font-size: 14px; color: var(--text2); margin-top: 2px; }
+
+  .tabs { display: flex; border-bottom: 1px solid var(--border2); margin-bottom: 1.5rem; }
+  .tab-btn { background: transparent; border: none; border-bottom: 2px solid transparent; padding: 10px 22px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--text2); cursor: pointer; margin-bottom: -1px; transition: all 0.15s; }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .add-form { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .add-form input { flex: 1; min-width: 160px; padding: 10px 14px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); color: var(--text); outline: none; }
+  .add-form input:focus { border-color: var(--text); }
+  .add-form select { padding: 10px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-family: 'DM Sans', sans-serif; font-size: 14px; background: var(--surface); color: var(--text); cursor: pointer; outline: none; width: 130px; }
+  .add-btn { background: var(--accent); color: var(--accent-fg); border: none; border-radius: var(--radius-sm); padding: 10px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
+  .add-btn:hover { opacity: 0.8; }
+
+  .stats-row { display: flex; gap: 10px; margin-bottom: 1.25rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; flex: 1; text-align: center; }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 600; }
+  .stat-label { font-size: 11px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .filter-row { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-btn { background: transparent; border: 1px solid var(--border2); border-radius: 20px; padding: 5px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .filter-btn.active { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+
+  .list { display: flex; flex-direction: column; gap: 8px; }
+  .item-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; transition: border-color 0.15s, opacity 0.2s; }
+  .item-card:hover { border-color: var(--border2); }
+  .item-card.done { opacity: 0.5; }
+
+  .item-info { flex: 1; min-width: 0; }
+  .item-title { font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item-card.done .item-title { text-decoration: line-through; color: var(--text2); }
+  .item-meta { display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+
+  .genre-badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 500; }
+  .g-Action       { background:#FAECE7; color:#993C1D; }
+  .g-Comedy       { background:#FAEEDA; color:#854F0B; }
+  .g-Drama        { background:#E6F1FB; color:#185FA5; }
+  .g-Horror       { background:#FCEBEB; color:#A32D2D; }
+  .g-SciFi        { background:#EEEDFE; color:#534AB7; }
+  .g-Romance      { background:#FBEAF0; color:#993556; }
+  .g-Thriller     { background:#EAF3DE; color:#3B6D11; }
+  .g-Animation    { background:#E1F5EE; color:#0F6E56; }
+  .g-Fantasy      { background:#EEEDFE; color:#534AB7; }
+  .g-Mystery      { background:#FCEBEB; color:#A32D2D; }
+  .g-NonFiction   { background:#E6F1FB; color:#185FA5; }
+  .g-ScienceFiction { background:#E1F5EE; color:#0F6E56; }
+  .g-Biography    { background:#FAEEDA; color:#854F0B; }
+  .g-SelfHelp     { background:#EAF3DE; color:#3B6D11; }
+  .g-Other        { background:#F1EFE8; color:#5F5E5A; }
+
+  .item-date { font-size: 12px; color: var(--text3); }
+
+  .card-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+  .mark-btn { background: transparent; border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 5px 10px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--text2); cursor: pointer; white-space: nowrap; transition: all 0.15s; }
+  .mark-btn:hover { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+  .item-card.done .mark-btn { background: #EAF3DE; color: #3B6D11; border-color: #C0DD97; }
+  .item-card.done .mark-btn:hover { background: #C0DD97; }
+
+  .find-btn { border: none; border-radius: var(--radius-sm); padding: 5px 11px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; color: #fff; }
+  .find-btn:hover { opacity: 0.85; }
+  .find-btn.movie-find { background: #185FA5; }
+  .find-btn.book-find  { background: #3B6D11; }
+
+  .del-btn { background: transparent; border: none; color: var(--text3); cursor: pointer; font-size: 18px; padding: 4px 6px; border-radius: 6px; line-height: 1; transition: all 0.15s; }
+  .del-btn:hover { color: #A32D2D; background: #FCEBEB; }
+
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--text2); font-size: 14px; }
+  .empty-icon { font-size: 40px; margin-bottom: 10px; }
+  .empty p { color: var(--text3); margin-top: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-icon">🎬📚</div>
+    <div>
+      <h1>My Lists</h1>
+      <p>Track movies &amp; books you want to enjoy</p>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('movies',this)">🎬 Movies</button>
+    <button class="tab-btn" onclick="switchTab('books',this)">📚 Books</button>
+  </div>
+
+  <!-- MOVIES -->
+  <div class="section active" id="sec-movies">
+    <div class="add-form">
+      <input type="text" id="movieInput" placeholder="Movie title..." maxlength="100" />
+      <select id="movieGenre">
+        <option value="Other">Genre</option>
+        <option value="Action">Action</option>
+        <option value="Animation">Animation</option>
+        <option value="Comedy">Comedy</option>
+        <option value="Drama">Drama</option>
+        <option value="Horror">Horror</option>
+        <option value="Romance">Romance</option>
+        <option value="SciFi">Sci-Fi</option>
+        <option value="Thriller">Thriller</option>
+      </select>
+      <button class="add-btn" onclick="addItem('movies')">+ Add</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="mTotal">0</div><div class="stat-label">Total</div></div>
+      <div class="stat"><div class="stat-num" id="mTodo">0</div><div class="stat-label">To Watch</div></div>
+      <div class="stat"><div class="stat-num" id="mDone">0</div><div class="stat-label">Watched</div></div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('movies','all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('movies','todo',this)">To Watch</button>
+      <button class="filter-btn" onclick="setFilter('movies','done',this)">Watched</button>
+    </div>
+    <div class="list" id="movieList"></div>
+  </div>
+
+  <!-- BOOKS -->
+  <div class="section" id="sec-books">
+    <div class="add-form">
+      <input type="text" id="bookInput" placeholder="Book title..." maxlength="100" />
+      <select id="bookGenre">
+        <option value="Other">Genre</option>
+        <option value="Biography">Biography</option>
+        <option value="Fantasy">Fantasy</option>
+        <option value="Mystery">Mystery</option>
+        <option value="NonFiction">Non-Fiction</option>
+        <option value="Romance">Romance</option>
+        <option value="ScienceFiction">Sci-Fi</option>
+        <option value="SelfHelp">Self-Help</option>
+        <option value="Thriller">Thriller</option>
+      </select>
+      <button class="add-btn" onclick="addItem('books')">+ Add</button>
+    </div>
+    <div class="stats-row">
+      <div class="stat"><div class="stat-num" id="bTotal">0</div><div class="stat-label">Total</div></div>
+      <div class="stat"><div class="stat-num" id="bTodo">0</div><div class="stat-label">To Read</div></div>
+      <div class="stat"><div class="stat-num" id="bDone">0</div><div class="stat-label">Read</div></div>
+    </div>
+    <div class="filter-row">
+      <button class="filter-btn active" onclick="setFilter('books','all',this)">All</button>
+      <button class="filter-btn" onclick="setFilter('books','todo',this)">To Read</button>
+      <button class="filter-btn" onclick="setFilter('books','done',this)">Read</button>
+    </div>
+    <div class="list" id="bookList"></div>
+  </div>
+
+</div>
+<script>
+  var store = {
+    movies: JSON.parse(localStorage.getItem('mylist-movies') || '[]'),
+    books:  JSON.parse(localStorage.getItem('mylist-books')  || '[]')
+  };
+  var filters = { movies: 'all', books: 'all' };
+  var nid = {
+    movies: store.movies.length ? Math.max.apply(null, store.movies.map(function(x){return x.id;})) + 1 : 1,
+    books:  store.books.length  ? Math.max.apply(null, store.books.map(function(x){return x.id;}))  + 1 : 1
+  };
+
+  function save(t) { localStorage.setItem('mylist-' + t, JSON.stringify(store[t])); }
+
+  function switchTab(t, btn) {
+    document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
+    btn.classList.add('active');
+    document.getElementById('sec-' + t).classList.add('active');
+  }
+
+  function addItem(t) {
+    var inputEl = document.getElementById(t === 'movies' ? 'movieInput' : 'bookInput');
+    var genreEl = document.getElementById(t === 'movies' ? 'movieGenre' : 'bookGenre');
+    var title = inputEl.value.trim();
+    if (!title) { inputEl.focus(); return; }
+    var date = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    store[t].unshift({ id: nid[t]++, title: title, genre: genreEl.value, done: false, date: date });
+    inputEl.value = '';
+    save(t);
+    render(t);
+  }
+
+  document.getElementById('movieInput').addEventListener('keydown', function(e){ if(e.key==='Enter') addItem('movies'); });
+  document.getElementById('bookInput').addEventListener('keydown',  function(e){ if(e.key==='Enter') addItem('books'); });
+
+  function toggleDone(t, id) {
+    var item = store[t].find(function(x){ return x.id === id; });
+    if (item) item.done = !item.done;
+    save(t); render(t);
+  }
+
+  function deleteItem(t, id) {
+    if (!confirm('Remove this from your list?')) return;
+    store[t] = store[t].filter(function(x){ return x.id !== id; });
+    save(t); render(t);
+  }
+
+  function setFilter(t, f, btn) {
+    filters[t] = f;
+    btn.closest('.filter-row').querySelectorAll('.filter-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    render(t);
+  }
+
+  function findOnline(t, title) {
+    var url;
+    if (t === 'movies') {
+      url = 'https://www.google.com/search?q=' + encodeURIComponent('watch ' + title + ' online streaming');
+    } else {
+      url = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(title + ' read aloud audiobook');
+    }
+    window.open(url, '_blank');
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  var genreLabels = { SciFi:'Sci-Fi', NonFiction:'Non-Fiction', ScienceFiction:'Sci-Fi', SelfHelp:'Self-Help' };
+  function glabel(g) { return genreLabels[g] || g; }
+
+  function render(t) {
+    var items = store[t];
+    var doneCount = items.filter(function(x){ return x.done; }).length;
+    var isMovie = t === 'movies';
+
+    if (isMovie) {
+      document.getElementById('mTotal').textContent = items.length;
+      document.getElementById('mTodo').textContent = items.length - doneCount;
+      document.getElementById('mDone').textContent = doneCount;
+    } else {
+      document.getElementById('bTotal').textContent = items.length;
+      document.getElementById('bTodo').textContent = items.length - doneCount;
+      document.getElementById('bDone').textContent = doneCount;
+    }
+
+    var f = filters[t];
+    var visible = items.filter(function(x){
+      if (f === 'done') return x.done;
+      if (f === 'todo') return !x.done;
+      return true;
+    });
+
+    var listEl = document.getElementById(isMovie ? 'movieList' : 'bookList');
+
+    if (!visible.length) {
+      var icon = isMovie ? '🍿' : '📖';
+      var noun = isMovie ? 'movie' : 'book';
+      listEl.innerHTML = '<div class="empty"><div class="empty-icon">' + icon + '</div><strong>Nothing here yet!</strong><p>Add a ' + noun + ' above to get started.</p></div>';
+      return;
+    }
+
+    listEl.innerHTML = visible.map(function(m) {
+      var safeTitle = esc(m.title);
+      var jsTitle = m.title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var markLabel = m.done
+        ? (isMovie ? '&#10003; Watched' : '&#10003; Read')
+        : (isMovie ? '&#10003; Mark Watched' : '&#10003; Mark Read');
+      var findLabel = isMovie ? '&#9654; Watch Online' : '&#127908; Read Aloud';
+      var findClass = isMovie ? 'find-btn movie-find' : 'find-btn book-find';
+
+      return '<div class="item-card ' + (m.done ? 'done' : '') + '">' +
+        '<div class="item-info">' +
+          '<div class="item-title">' + safeTitle + '</div>' +
+          '<div class="item-meta">' +
+            '<span class="genre-badge g-' + m.genre + '">' + glabel(m.genre) + '</span>' +
+            '<span class="item-date">Added ' + m.date + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-actions">' +
+          '<button class="mark-btn" onclick="toggleDone(\'' + t + '\',' + m.id + ')">' + markLabel + '</button>' +
+          '<button class="' + findClass + '" onclick="findOnline(\'' + t + '\',\'' + jsTitle + '\')">' + findLabel + '</button>' +
+          '<button class="del-btn" onclick="deleteItem(\'' + t + '\',' + m.id + ')" title="Remove">&#x2715;</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  render('movies');
+  render('books');
+</script>
+</body>
+</html>
