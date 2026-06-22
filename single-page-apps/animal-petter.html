@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Animal Quest 3D</title>
+<style>
+body {margin:0; overflow:hidden;}
+#ui{
+position:absolute;
+top:10px;left:10px;
+background:white;
+padding:10px;
+border-radius:10px;
+font-family:Arial;
+z-index:10;
+}
+</style>
+</head>
+<body>
+<div id="ui">
+Animals Found: <span id="score">0</span>/8<br>
+WASD Move | E Pet<br>
+Click screen for mouse look
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+let score=0;
+const scoreEl=document.getElementById("score");
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x87ceeb);
+
+const camera=new THREE.PerspectiveCamera(
+75,window.innerWidth/window.innerHeight,0.1,1000);
+
+const renderer=new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth,window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// floor
+const floor=new THREE.Mesh(
+new THREE.PlaneGeometry(500,500),
+new THREE.MeshLambertMaterial({color:0x55aa55})
+);
+floor.rotation.x=-Math.PI/2;
+scene.add(floor);
+
+// light
+const light=new THREE.DirectionalLight(0xffffff,1);
+light.position.set(5,10,5);
+scene.add(light);
+
+// player
+camera.position.set(0,2,5);
+
+// animals
+const animals=[];
+for(let i=0;i<8;i++){
+const animal=new THREE.Mesh(
+new THREE.BoxGeometry(2,2,2),
+new THREE.MeshLambertMaterial({
+color:Math.random()*0xffffff
+})
+);
+
+animal.position.set(
+(Math.random()-0.5)*100,
+1,
+(Math.random()-0.5)*100
+);
+
+animal.userData.found=false;
+animals.push(animal);
+scene.add(animal);
+}
+
+// movement
+const keys={};
+document.addEventListener("keydown",e=>{
+keys[e.key.toLowerCase()]=true;
+
+if(e.key.toLowerCase()=="e"){
+animals.forEach(a=>{
+if(!a.userData.found){
+let d=camera.position.distanceTo(a.position);
+if(d<5){
+a.userData.found=true;
+a.visible=false;
+score++;
+scoreEl.textContent=score;
+alert("You pet an animal!");
+}
+}
+});
+}
+});
+
+document.addEventListener("keyup",e=>{
+keys[e.key.toLowerCase()]=false;
+});
+
+// mouse look
+document.body.onclick=()=>{
+document.body.requestPointerLock();
+};
+
+let yaw=0;
+document.addEventListener("mousemove",e=>{
+if(document.pointerLockElement){
+yaw-=e.movementX*0.002;
+camera.rotation.y=yaw;
+}
+});
+
+function animate(){
+requestAnimationFrame(animate);
+
+if(keys.w){
+camera.position.x-=Math.sin(yaw)*0.2;
+camera.position.z-=Math.cos(yaw)*0.2;
+}
+if(keys.s){
+camera.position.x+=Math.sin(yaw)*0.2;
+camera.position.z+=Math.cos(yaw)*0.2;
+}
+if(keys.a){
+camera.position.x-=Math.cos(yaw)*0.2;
+camera.position.z+=Math.sin(yaw)*0.2;
+}
+if(keys.d){
+camera.position.x+=Math.cos(yaw)*0.2;
+camera.position.z-=Math.sin(yaw)*0.2;
+}
+
+renderer.render(scene,camera);
+}
+animate();
+</script>
+</body>
+</html>
