@@ -313,9 +313,14 @@ function update() {
 }
 
 let animId;
+let lastTimestamp = 0;
+let time = 0;
 function loop(t) {
+  const delta = lastTimestamp === 0 ? 0 : (t - lastTimestamp) / 16.6667;
+  time += delta;
+  lastTimestamp = t;
   if (state === 'running') update();
-  render(t);
+  render(time);
   animId = requestAnimationFrame(loop);
 }
 
